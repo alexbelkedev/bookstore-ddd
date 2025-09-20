@@ -3,7 +3,7 @@
 A minimal backend-only Book Store implemented with **Domain-Driven Design** (DDD) and **Hexagonal Architecture**.
 Built for extension: add more bounded contexts (Ordering, Inventory), and later a web UI (React/Vue/Angular).
 
-## Quick start
+## Quick start 🛫
 
 ```bash
 # 1) Build & run (Java 21)
