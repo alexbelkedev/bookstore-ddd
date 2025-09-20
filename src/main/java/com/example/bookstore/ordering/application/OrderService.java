@@ -1,10 +1,11 @@
 package com.example.bookstore.ordering.application;
 
-import com.example.bookstore.catalog.domain.Money;
-import com.example.bookstore.ordering.domain.*;
+import com.example.bookstore.ordering.domain.Order;
+import com.example.bookstore.ordering.domain.OrderId;
+import com.example.bookstore.ordering.domain.OrderLine;
+import com.example.bookstore.ordering.domain.OrderRepository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Currency;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
