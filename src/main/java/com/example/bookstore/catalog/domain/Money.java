@@ -50,6 +50,11 @@ public final class Money {
         }
     }
 
+    public Money multiply(int factor) {
+        if (factor < 0) throw new IllegalArgumentException("factor must be >= 0");
+        return new Money(this.amount.multiply(new java.math.BigDecimal(factor)), this.currency);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
