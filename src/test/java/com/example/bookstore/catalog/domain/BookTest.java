@@ -6,7 +6,7 @@ import java.util.Currency;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class BookTest {
+class BookTest {
 
     @Test
     void stock_invariants() {
