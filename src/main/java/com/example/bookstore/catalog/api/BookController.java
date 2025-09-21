@@ -4,6 +4,7 @@ import com.example.bookstore.catalog.api.dto.BookResponse;
 import com.example.bookstore.catalog.api.dto.CreateBookRequest;
 import com.example.bookstore.catalog.application.BookService;
 import com.example.bookstore.catalog.domain.Book;
+import com.example.bookstore.common.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,11 +13,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 @Tag(name = "Catalog", description = "Manage books in the catalog")
 @RestController
@@ -58,6 +59,19 @@ public class BookController {
     @GetMapping
     public List<BookResponse> list() {
         return service.listAll().stream().map(this::toResponse).toList();
+    }
+
+
+    @Operation(summary = "Search books with pagination")
+    @GetMapping("/search")
+    public Map<String, Object> search(
+            @RequestParam(name = "q", required = false) String q,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            com.example.bookstore.catalog.application.BookQueries queries
+    ) {
+        var result = queries.search(new com.example.bookstore.catalog.application.BookQueries.Criteria(q, page, size));
+        return Map.of("items", result.items(), "page", result.page(), "size", result.size(), "total", result.total());
     }
 
     private BookResponse toResponse(Book b) {
