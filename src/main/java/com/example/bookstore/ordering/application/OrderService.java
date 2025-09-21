@@ -1,5 +1,7 @@
 package com.example.bookstore.ordering.application;
 
+import com.example.bookstore.common.events.ordering.OrderPlacedPayload;
+import com.example.bookstore.common.outbox.OutboxService;
 import com.example.bookstore.ordering.domain.Order;
 import com.example.bookstore.ordering.domain.OrderId;
 import com.example.bookstore.ordering.domain.OrderLine;
@@ -7,35 +9,34 @@ import com.example.bookstore.ordering.domain.OrderRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 public class OrderService {
-    private final OrderRepository orders;
-    private final PaymentsPort payments;
 
-    public OrderService(OrderRepository orders, PaymentsPort payments) {
+    private final OrderRepository orders;
+    private final OutboxService outbox;
+
+    public OrderService(OrderRepository orders, OutboxService outbox) {
         this.orders = orders;
-        this.payments = payments;
+        this.outbox = outbox;
     }
 
     @Transactional
     public Order placeOrder(List<OrderLine> lines) {
         Order order = Order.createNew(lines);
-        order = orders.save(order);
+        order = orders.save(order); // status PENDING_PAYMENT
 
-        // Payment authorization (through the port)
         var total = order.total();
-        var result = payments.authorize(
+        outbox.append(
+                "orders.order-placed.v1",
                 order.id().toString(),
-                total.amount().toPlainString(),
-                total.currency(),
-                "order-" + order.id().toString() // naive idempotency key
+                new OrderPlacedPayload(order.id().toString(), total.amount().toPlainString(), total.currency().getCurrencyCode()),
+                Map.of("correlationId", order.id().toString(), "causation", "api.placeOrder")
         );
-        if (result == PaymentsPort.Result.AUTHORIZED) order.markPaid();
-        else order.markPaymentFailed();
 
-        return orders.save(order);
+        return order;
     }
 
     @Transactional(readOnly = true)
@@ -46,5 +47,22 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<Order> list() {
         return orders.findAll();
+    }
+
+    // used by event handler
+    @Transactional
+    public void markPaid(String orderId) {
+        orders.findById(new OrderId(UUID.fromString(orderId))).ifPresent(o -> {
+            o.markPaid();
+            orders.save(o);
+        });
+    }
+
+    @Transactional
+    public void markPaymentFailed(String orderId, String reason) {
+        orders.findById(new OrderId(UUID.fromString(orderId))).ifPresent(o -> {
+            o.markPaymentFailed();
+            orders.save(o);
+        });
     }
 }
