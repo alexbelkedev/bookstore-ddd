@@ -27,3 +27,8 @@ ordering:
   payments:
     mode: http           # "local" to switch back
     base-url: http://localhost:8080
+
+logging:
+  level:
+    org.springframework.web.client.RestTemplate: DEBUG
+    org.springframework.web.client.RestClient: DEBUG
