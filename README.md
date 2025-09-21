@@ -51,7 +51,7 @@ Expected result:
 
 ### Ordering
 - Aggregate: `Order` (with `OrderLine`)
-- Uses `PaymentsPort` to authorize payments
+- Integrated with Payments asynchronously via Outbox Saga
 - API: `/api/orders`
 
 ### Payments
@@ -66,16 +66,61 @@ Expected result:
 
 Currently:
 
-- **Ordering → Payments** uses an **HTTP adapter** (`HttpPaymentsAdapter`) that calls the Payments REST API.
-- Configuration in `application.yml` decides which adapter to use:
-    - `ordering.payments.mode=local` → local in-process adapter (`LocalPaymentsAdapter`)
-    - `ordering.payments.mode=http` → HTTP adapter (`HttpPaymentsAdapter`)
-- **No cross-domain dependencies**: Ordering does not import Payments classes, only the `PaymentsPort` interface.
+- **Ordering → Payments** uses **async event choreography** with a **Transactional Outbox**.
+- Flow:
+    - `OrderPlaced` event → Payments consumes → emits `PaymentAuthorized` or `PaymentFailed`.
+    - Ordering consumes payment events → updates status.
+- **No cross-domain dependencies**: only event contracts are shared, not classes.
 
 This proves the **Ports & Adapters pattern** in action:
 
-- Domain code only depends on an abstraction (`PaymentsPort`).
-- Infrastructure (adapters) can change without touching the domain.
+- Domain code only depends on abstractions.
+- Infrastructure (HTTP, Events, Outbox) can change without touching the domain.
+
+---
+
+## Inspecting data in H2 console
+
+Spring Boot enables the H2 web console at [http://localhost:8080/h2-console](http://localhost:8080/h2-console).  
+Connection settings:
+
+- **JDBC URL**: `jdbc:h2:mem:bookstore`
+- **User**: `sa`
+- **Password**: (leave empty)
+
+### Useful queries
+
+📚 List all books
+
+```sql
+SELECT * FROM BOOKS;
+```
+
+🛒 List all orders
+
+```sql
+SELECT * FROM ORDERS;
+```
+
+📦 Order lines
+
+```sql
+SELECT * FROM ORDER_LINES;
+```
+
+📬 Inspect outbox events
+
+```sql
+SELECT ID, TOPIC, AGGREGATEID, STATUS, ATTEMPTS, CREATEDAT
+FROM OUTBOX
+ORDER BY CREATEDAT DESC;
+```
+
+💳 Payments table
+
+```sql
+SELECT * FROM PAYMENTS;
+```
 
 ---
 
@@ -83,18 +128,18 @@ This proves the **Ports & Adapters pattern** in action:
 
 - **domain/** → pure business logic (no Spring/JPA annotations)
 - **application/** → use-cases, orchestrating domain and ports
-- **infrastructure/** → adapters (JPA, HTTP, local ACL)
+- **infrastructure/** → adapters (JPA, HTTP, Outbox, etc.)
 - **api/** → REST controllers & DTOs
 
-Bounded contexts are independent and communicate only via **ports**.
+Bounded contexts are independent and communicate only via **ports** or **events**.
 
 ---
 
 ## Next milestones
 
-- [ ] Add async event flow (outbox, saga pattern)
 - [ ] Add Inventory context (stock reservation before payment)
-- [ ] Hardening: Postgres + Flyway, OpenAPI (springdoc) annotations, Dockerfile
+- [ ] Add retries + Dead Letter Queue for Outbox
+- [ ] Hardening: Postgres + Flyway, OpenAPI annotations, Dockerfile
 - [ ] Frontend app (React/Vue/Angular) consuming the REST API
 
 ---
