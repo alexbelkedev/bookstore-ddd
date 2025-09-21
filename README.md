@@ -79,6 +79,35 @@ This proves the **Ports & Adapters pattern** in action:
 
 ---
 
+## Development profile & seed data
+
+The project includes a **dev profile** (`application-dev.yml`) that auto-seeds sample data on startup.
+
+### How it works
+
+- 5 books are registered automatically:
+    - Clean Architecture (Robert C. Martin)
+    - Domain-Driven Design (Eric Evans)
+    - Implementing DDD (Vaughn Vernon)
+    - Refactoring (Martin Fowler)
+    - Test-Driven Development (Kent Beck)
+- 2 sample orders are created:
+    - One order with total ≤ 1000 → eventually becomes **PAID**
+    - One order with total > 1000 → eventually becomes **PAYMENT_FAILED**
+
+### Activate dev profile
+
+`application.yml` is already configured to use `dev` as default.  
+Or run manually:
+
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+This gives you a populated system immediately after startup.
+
+---
+
 ## Inspecting data in H2 console
 
 Spring Boot enables the H2 web console at [http://localhost:8080/h2-console](http://localhost:8080/h2-console).  
@@ -91,25 +120,21 @@ Connection settings:
 ### Useful queries
 
 📚 List all books
-
 ```sql
 SELECT * FROM BOOKS;
 ```
 
 🛒 List all orders
-
 ```sql
 SELECT * FROM ORDERS;
 ```
 
 📦 Order lines
-
 ```sql
 SELECT * FROM ORDER_LINES;
 ```
 
 📬 Inspect outbox events
-
 ```sql
 SELECT ID, TOPIC, AGGREGATEID, STATUS, ATTEMPTS, CREATEDAT
 FROM OUTBOX
@@ -117,7 +142,6 @@ ORDER BY CREATEDAT DESC;
 ```
 
 💳 Payments table
-
 ```sql
 SELECT * FROM PAYMENTS;
 ```
