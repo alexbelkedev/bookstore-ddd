@@ -79,39 +79,80 @@ This proves the **Ports & Adapters pattern** in action:
 
 ---
 
+## Saga (async) sequence (Mermaid)
+
+The diagram below shows the end-to-end flow from placing an order to payment result using the **Transactional Outbox +
+Choreography** pattern.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant API as Ordering API (REST)
+    participant OSvc as OrderService (App)
+    participant ORepo as OrderRepository (JPA)
+    participant OOut as Outbox (DB)
+    participant Pub as Outbox Publisher (Scheduler)
+    participant PListen as Payments Listener
+    participant PFac as PaymentsFacade (App)
+    participant PRepo as PaymentRepository (JPA)
+    participant POut as Outbox (DB)
+
+    User->>API: POST /api/orders (lines)
+    API->>OSvc: placeOrder(lines)
+    OSvc->>ORepo: save(Order{PENDING_PAYMENT})
+    OSvc->>OOut: append("orders.order-placed.v1", payload)
+    OSvc-->>API: 201 Created (Order PENDING_PAYMENT)
+
+    Note over Pub: runs every second
+    Pub->>OOut: fetch NEW/FAILED
+    Pub->>PListen: publish envelope(topic, payload)
+
+    PListen->>PFac: authorize(orderId, amount, currency, idemKey)
+    PFac->>PRepo: save(Payment) + decide (<=1000 AUTHORIZED else FAILED)
+    alt Authorized
+        PListen->>POut: append("payments.payment-authorized.v1", payload)
+    else Failed
+        PListen->>POut: append("payments.payment-failed.v1", payload)
+    end
+
+    Pub->>POut: fetch NEW/FAILED
+    Pub->>OSvc: publish payment event envelope
+    alt PaymentAuthorized
+        OSvc->>ORepo: markPaid(orderId)
+    else PaymentFailed
+        OSvc->>ORepo: markPaymentFailed(orderId)
+    end
+```
+
+> Swap `Pub` to Kafka/RabbitMQ by changing the dispatcher—domain/application code stays the same.
+
+---
+
 ## Development profile & seed data
 
 The project includes a **dev profile** (`application-dev.yml`) that auto-seeds sample data on startup.
 
 ### How it works
 
-- 5 books are registered automatically:
-    - Clean Architecture (Robert C. Martin)
-    - Domain-Driven Design (Eric Evans)
-    - Implementing DDD (Vaughn Vernon)
-    - Refactoring (Martin Fowler)
-    - Test-Driven Development (Kent Beck)
+- 5 books are registered automatically.
 - 2 sample orders are created:
     - One order with total ≤ 1000 → eventually becomes **PAID**
     - One order with total > 1000 → eventually becomes **PAYMENT_FAILED**
 
 ### Activate dev profile
-
 `application.yml` is already configured to use `dev` as default.  
 Or run manually:
-
 ```bash
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
-
-This gives you a populated system immediately after startup.
 
 ---
 
 ## Inspecting data in H2 console
 
-Spring Boot enables the H2 web console at [http://localhost:8080/h2-console](http://localhost:8080/h2-console).  
-Connection settings:
+H2 console: [http://localhost:8080/h2-console](http://localhost:8080/h2-console)  
+Connection:
 
 - **JDBC URL**: `jdbc:h2:mem:bookstore`
 - **User**: `sa`
@@ -119,30 +160,11 @@ Connection settings:
 
 ### Useful queries
 
-📚 List all books
 ```sql
 SELECT * FROM BOOKS;
-```
-
-🛒 List all orders
-```sql
 SELECT * FROM ORDERS;
-```
-
-📦 Order lines
-```sql
 SELECT * FROM ORDER_LINES;
-```
-
-📬 Inspect outbox events
-```sql
-SELECT ID, TOPIC, AGGREGATEID, STATUS, ATTEMPTS, CREATEDAT
-FROM OUTBOX
-ORDER BY CREATEDAT DESC;
-```
-
-💳 Payments table
-```sql
+SELECT ID, TOPIC, AGGREGATEID, STATUS, ATTEMPTS, CREATEDAT FROM OUTBOX ORDER BY CREATEDAT DESC;
 SELECT * FROM PAYMENTS;
 ```
 
@@ -163,6 +185,7 @@ Bounded contexts are independent and communicate only via **ports** or **events*
 
 - [ ] Add Inventory context (stock reservation before payment)
 - [ ] Add retries + Dead Letter Queue for Outbox
+- [ ] Kafka/RabbitMQ dispatcher & consumers (replace in-process publishing)
 - [ ] Hardening: Postgres + Flyway, OpenAPI annotations, Dockerfile
 - [ ] Frontend app (React/Vue/Angular) consuming the REST API
 
