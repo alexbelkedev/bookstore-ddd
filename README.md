@@ -44,24 +44,21 @@ Expected result:
 ## Current bounded contexts
 
 ### Catalog
-
 - Aggregate: `Book`
 - Value Objects: `Isbn`, `Money`
 - Repository: `BookRepository`
 - API: `/api/catalog/books`
 
 ### Ordering
-
 - Aggregate: `Order` (with `OrderLine`)
 - Uses `PaymentsPort` to authorize payments
 - API: `/api/orders`
 
 ### Payments
-
 - Aggregate: `Payment`
 - Simple rule: decline if amount > 1000
-- Exposes `PaymentsFacade` (used locally by Ordering)
-- API: `/api/payments/authorize` (already present, but not used yet)
+- Exposes `PaymentsFacade` (application layer)
+- API: `/api/payments/authorize`
 
 ---
 
@@ -69,14 +66,16 @@ Expected result:
 
 Currently:
 
-- **Ordering → Payments** via a **local adapter** (`LocalPaymentsAdapter`) that calls `PaymentsFacade` directly.
-- No direct entity sharing, only via ports.
-- Each context has its own persistence model.
+- **Ordering → Payments** uses an **HTTP adapter** (`HttpPaymentsAdapter`) that calls the Payments REST API.
+- Configuration in `application.yml` decides which adapter to use:
+    - `ordering.payments.mode=local` → local in-process adapter (`LocalPaymentsAdapter`)
+    - `ordering.payments.mode=http` → HTTP adapter (`HttpPaymentsAdapter`)
+- **No cross-domain dependencies**: Ordering does not import Payments classes, only the `PaymentsPort` interface.
 
-Planned:
+This proves the **Ports & Adapters pattern** in action:
 
-- **Swap to HTTP adapter** (Ordering calls Payments over REST)
-- Or introduce **async events** (`OrderPlaced` → `PaymentAuthorized/Failed`).
+- Domain code only depends on an abstraction (`PaymentsPort`).
+- Infrastructure (adapters) can change without touching the domain.
 
 ---
 
@@ -93,10 +92,9 @@ Bounded contexts are independent and communicate only via **ports**.
 
 ## Next milestones
 
-- [ ] Swap Ordering → Payments communication to HTTP adapter
 - [ ] Add async event flow (outbox, saga pattern)
 - [ ] Add Inventory context (stock reservation before payment)
-- [ ] Hardening: Postgres + Flyway, OpenAPI (springdoc), Dockerfile
+- [ ] Hardening: Postgres + Flyway, OpenAPI (springdoc) annotations, Dockerfile
 - [ ] Frontend app (React/Vue/Angular) consuming the REST API
 
 ---
