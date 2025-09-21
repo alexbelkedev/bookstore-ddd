@@ -6,22 +6,27 @@ import com.example.bookstore.ordering.api.dto.PlaceOrderRequest;
 import com.example.bookstore.ordering.application.OrderService;
 import com.example.bookstore.ordering.domain.Order;
 import com.example.bookstore.ordering.domain.OrderLine;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = "Ordering", description = "Place and inspect orders")
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {
     private final OrderService service;
 
-    public OrderController(OrderService service) { this.service = service; }
+    public OrderController(OrderService service) {
+        this.service = service;
+    }
 
+    @Operation(summary = "Place an order")
     @PostMapping
     public ResponseEntity<?> place(@Valid @RequestBody PlaceOrderRequest req) {
         List<OrderLine> lines = req.lines.stream().map(l ->
@@ -38,6 +43,7 @@ public class OrderController {
                 .body(toResponse(saved));
     }
 
+    @Operation(summary = "Get order by id")
     @GetMapping("/{id}")
     public ResponseEntity<?> byId(@PathVariable String id) {
         return service.byId(id)
@@ -45,6 +51,7 @@ public class OrderController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "List orders")
     @GetMapping
     public List<OrderResponse> list() {
         return service.list().stream().map(this::toResponse).toList();
