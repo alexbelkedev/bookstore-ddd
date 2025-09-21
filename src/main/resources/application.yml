@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:bookstore;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    url: jdbc:h2:mem:bookstore;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
     password: ""
   jpa:
@@ -13,6 +13,7 @@ spring:
   h2:
     console:
       enabled: true
+      path: /h2-console
 
 server:
   port: 8080
@@ -29,8 +30,9 @@ ordering:
     base-url: http://localhost:8080
 
 # activate logging for http client calls
-#logging:
-#  level:
+logging:
+  level:
+    com.example.bookstore.common.outbox: INFO
 #    org.springframework.web.client.RestClient: DEBUG
 #    org.springframework.web.client: DEBUG
 #    org.apache.hc.client5.http: DEBUG
