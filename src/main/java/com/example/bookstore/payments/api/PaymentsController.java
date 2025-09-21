@@ -21,7 +21,7 @@ public class PaymentsController {
     @Operation(summary = "Authorize payment")
     @PostMapping("/authorize")
     public Map<String, Object> authorize(@RequestBody Map<String, String> body) {
-        System.out.println(">>> PaymentsController invoked via HTTP with body = " + body);
+//        System.out.println(">>> PaymentsController invoked via HTTP with body = " + body);
         var r = facade.authorize(
                 body.get("orderId"),
                 body.get("amount"),

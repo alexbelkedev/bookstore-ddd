@@ -28,10 +28,11 @@ ordering:
     mode: http           # "local" to switch back
     base-url: http://localhost:8080
 
-logging:
-  level:
-    org.springframework.web.client.RestClient: DEBUG
-    org.springframework.web.client: DEBUG
-    org.apache.hc.client5.http: DEBUG
-    org.apache.hc.client5.http.wire: DEBUG   # raw request/response lines
-    org.apache.hc.core5.http: DEBUG
+# activate logging for http client calls
+#logging:
+#  level:
+#    org.springframework.web.client.RestClient: DEBUG
+#    org.springframework.web.client: DEBUG
+#    org.apache.hc.client5.http: DEBUG
+#    org.apache.hc.client5.http.wire: DEBUG   # raw request/response lines
+#    org.apache.hc.core5.http: DEBUG
