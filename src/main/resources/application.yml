@@ -23,3 +23,7 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
+ordering:
+  payments:
+    mode: http           # "local" to switch back
+    base-url: http://localhost:8080

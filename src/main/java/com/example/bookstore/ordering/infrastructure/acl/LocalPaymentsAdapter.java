@@ -2,11 +2,13 @@ package com.example.bookstore.ordering.infrastructure.acl;
 
 import com.example.bookstore.ordering.application.PaymentsPort;
 import com.example.bookstore.payments.application.PaymentsFacade;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.Currency;
 
 @Component
+@ConditionalOnProperty(name = "ordering.payments.mode", havingValue = "local", matchIfMissing = true)
 public class LocalPaymentsAdapter implements PaymentsPort {
 
     private final PaymentsFacade payments;
